@@ -51,10 +51,10 @@ jobs:
           enum Di2ButtonState { released, longPress, shortPress }
 
           enum Opcode {
-            RESET(0), CONTROLLER_NOTIFICATION(1), RIDE_ON(2), STATUS_RESPONSE(3), GET_RESPONSE(4), VENDOR_MESSAGE(5), LOG_DATA(6), BATTERY_NOTIF(7);
+            CONTROLLER_NOTIFICATION(1), RIDE_ON(2), STATUS_RESPONSE(3), GET_RESPONSE(4), VENDOR_MESSAGE(5), LOG_DATA(6), BATTERY_NOTIF(7);
             final int value;
             const Opcode(this.value);
-            static Opcode valueOf(dynamic x) => RESET;
+            static Opcode valueOf(dynamic x) => CONTROLLER_NOTIFICATION;
           }
 
           enum DO {
@@ -126,7 +126,7 @@ jobs:
           class BleDefinition {}
 
           class BridgeUsageTracker {
-            BridgeUsageTracker([dynamic a, dynamic b], {dynamic prefs, dynamic c, dynamic d});
+            BridgeUsageTracker(dynamic a, dynamic b, {dynamic prefs, dynamic c, dynamic d});
             bool get isExhausted => false;
             void startSession({dynamic isActive}) {}
             Stream<dynamic> get onBudgetExhausted => const Stream.empty();
@@ -136,7 +136,7 @@ jobs:
           }
 
           class NetworkTransporter {
-            NetworkTransporter([dynamic a, dynamic b, dynamic c], {dynamic socket, dynamic d, dynamic e});
+            NetworkTransporter(dynamic a, dynamic b, dynamic c, {dynamic socket, dynamic d, dynamic e});
             void handleIncomingData(dynamic x) {}
             void sendCharacteristicNotification(dynamic a, dynamic b) {}
           }
