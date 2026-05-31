@@ -14,11 +14,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Checkout core repository layout
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      # 2. Sync baseline override protocols
       - name: Rename Pubspec Overrides
         run: |
           if [ -f pubspec_overrides_ci.yaml ]; then
@@ -27,7 +25,6 @@ jobs:
               echo "No pubspec_overrides_ci.yaml found, skipping rename."
           fi
 
-      # 3. Inject fully mocked signature model to spoof all app boundaries
       - name: Inject Complete Mock API Surface
         run: |
           mkdir -p prop/lib/emulators/definitions
@@ -43,70 +40,27 @@ jobs:
           cat << 'EOF' > prop/lib/stub.dart
           import 'package:flutter/foundation.dart';
 
-          class LogLevel {
-            final int value;
-            const LogLevel(this.value);
-            static const LOGLEVEL_INFO = LogLevel(0);
-            static const LOGLEVEL_WARNING = LogLevel(1);
-            static const LOGLEVEL_ERROR = LogLevel(2);
-            static const LOGLEVEL_DEBUG = LogLevel(3);
+          enum LogLevel { LOGLEVEL_INFO, LOGLEVEL_WARNING, LOGLEVEL_ERROR, LOGLEVEL_DEBUG }
+          enum TrainerMode { simMode, ergMode, simModeVirtualShifting }
+          enum RetrofitMode { 
+            proxy('Proxy'), bluetooth('Bluetooth'), wifi('WiFi'); 
+            final String label; 
+            const RetrofitMode(this.label); 
           }
+          enum VirtualShiftingMode { targetPower, trackResistance, basicResistance }
+          enum Di2ButtonState { released, longPress, shortPress }
 
-          class TrainerMode {
-            final int value;
-            const TrainerMode(this.value);
-            static const simMode = TrainerMode(0);
-            static const ergMode = TrainerMode(1);
-            static const simModeVirtualShifting = TrainerMode(2);
-            static const values = [simMode, ergMode, simModeVirtualShifting];
-          }
-
-          class RetrofitMode {
-            final String label;
-            const RetrofitMode(this.label);
-            static const proxy = RetrofitMode('Proxy');
-            static const bluetooth = RetrofitMode('Bluetooth');
-            static const wifi = RetrofitMode('WiFi');
-            static const values = [proxy, bluetooth, wifi];
-          }
-
-          class VirtualShiftingMode {
-            final int value;
-            const VirtualShiftingMode(this.value);
-            static const targetPower = VirtualShiftingMode(0);
-            static const trackResistance = VirtualShiftingMode(1);
-            static const basicResistance = VirtualShiftingMode(2);
-            static const values = [targetPower, trackResistance, basicResistance];
-          }
-
-          class Di2ButtonState {
-            final int value;
-            const Di2ButtonState(this.value);
-            static const released = Di2ButtonState(0);
-            static const longPress = Di2ButtonState(1);
-            static const shortPress = Di2ButtonState(2);
-          }
-
-          class Opcode {
+          enum Opcode {
+            RESET(0), CONTROLLER_NOTIFICATION(1), RIDE_ON(2), STATUS_RESPONSE(3), GET_RESPONSE(4), VENDOR_MESSAGE(5), LOG_DATA(6), BATTERY_NOTIF(7);
             final int value;
             const Opcode(this.value);
-            static const RESET = Opcode(0);
-            static const CONTROLLER_NOTIFICATION = Opcode(1);
-            static const RIDE_ON = Opcode(2);
-            static const STATUS_RESPONSE = Opcode(3);
-            static const GET_RESPONSE = Opcode(4);
-            static const VENDOR_MESSAGE = Opcode(5);
-            static const LOG_DATA = Opcode(6);
-            static const BATTERY_NOTIF = Opcode(7);
             static Opcode valueOf(dynamic x) => RESET;
           }
 
-          class DO {
+          enum DO {
+            PAGE_DEV_INFO(0), PAGE_DATE_TIME(1), PAGE_CONTROLLER_INPUT_CONFIG(2);
             final int value;
             const DO(this.value);
-            static const PAGE_DEV_INFO = DO(0);
-            static const PAGE_DATE_TIME = DO(1);
-            static const PAGE_CONTROLLER_INPUT_CONFIG = DO(2);
             static DO valueOf(dynamic x) => PAGE_DEV_INFO;
           }
 
@@ -120,29 +74,29 @@ jobs:
             static const FITNESS_MACHINE_SERVICE_UUID = '1826';
             static const FEC_BLE_SERVICE_UUID = 'fec';
             static dynamic defaultGearRatios = [1.0];
-            static defaultGearRatiosFor(dynamic x) => [1.0];
+            static List<double> defaultGearRatiosFor(dynamic x) => [1.0];
 
             final ValueNotifier<TrainerMode> trainerMode = ValueNotifier(TrainerMode.simMode);
-            final ValueNotifier<int?> currentGear = ValueNotifier(1);
-            final ValueNotifier<int?> powerW = ValueNotifier(0);
-            final ValueNotifier<int?> cadenceRpm = ValueNotifier(0);
-            final ValueNotifier<double?> speedKph = ValueNotifier(0.0);
-            final ValueNotifier<int?> heartRateBpm = ValueNotifier(0);
+            final ValueNotifier<int> currentGear = ValueNotifier(1);
+            final ValueNotifier<int> powerW = ValueNotifier(0);
+            final ValueNotifier<int> cadenceRpm = ValueNotifier(0);
+            final ValueNotifier<double> speedKph = ValueNotifier(0.0);
+            final ValueNotifier<int> heartRateBpm = ValueNotifier(0);
             final ValueNotifier<double> gearRatio = ValueNotifier(1.0);
-            final ValueNotifier<int?> ergTargetPower = ValueNotifier(150);
-            final ValueNotifier<int?> targetPowerW = ValueNotifier(150);
+            final ValueNotifier<int> ergTargetPower = ValueNotifier(150);
+            final ValueNotifier<int> targetPowerW = ValueNotifier(150);
             final ValueNotifier<double> bicycleWeightKg = ValueNotifier(10.0);
             final ValueNotifier<double> riderWeightKg = ValueNotifier(70.0);
             final ValueNotifier<List<double>> gearRatios = ValueNotifier([1.0]);
             final ValueNotifier<bool> gradeSmoothingEnabled = ValueNotifier(false);
             final ValueNotifier<bool> cadenceFilterEnabled = ValueNotifier(false);
-            final ValueNotifier<dynamic> virtualShiftingMode = ValueNotifier(null);
+            final ValueNotifier<VirtualShiftingMode> virtualShiftingMode = ValueNotifier(VirtualShiftingMode.targetPower);
             final ValueNotifier<dynamic> trainerFeature = ValueNotifier(null);
 
             int get maxGear => 11;
             dynamic get trainerFtmsMachineFeatureFlagNames => null;
             dynamic get trainerFtmsTargetSettingFlagNames => null;
-            dynamic get neutralGear => null;
+            int get neutralGear => 1;
 
             Future<void> probeTrainerFeatures() async {}
             void setMaxGear(dynamic x) {}
@@ -153,6 +107,7 @@ jobs:
             void setVirtualShiftingMode(dynamic x) {}
             void resetGearRatios() {}
             void setGearRatio(dynamic a, dynamic b) {}
+            void setGearRatios(dynamic x) {}
             bool shiftUp() => true;
             bool shiftDown() => true;
             void exitErgMode() {}
@@ -162,24 +117,26 @@ jobs:
           }
 
           class ProxyBikeDefinition extends FitnessBikeDefinition {}
+          
           class Di2Definition {
             static standalone({dynamic data}) => Di2Definition();
             void sendChannelStates(dynamic x) {}
           }
+          
           class BleDefinition {}
 
           class BridgeUsageTracker {
-            BridgeUsageTracker([dynamic a, dynamic b]);
+            BridgeUsageTracker([dynamic a, dynamic b], {dynamic prefs, dynamic c, dynamic d});
             bool get isExhausted => false;
             void startSession({dynamic isActive}) {}
             Stream<dynamic> get onBudgetExhausted => const Stream.empty();
             void stopSession() {}
-            ValueNotifier<int> get usedTodayListenable => ValueNotifier(0);
-            int get dailyLimit => 0;
+            ValueNotifier<Duration> get usedTodayListenable => ValueNotifier(Duration.zero);
+            Duration get dailyLimit => Duration.zero;
           }
 
           class NetworkTransporter {
-            NetworkTransporter([dynamic a, dynamic b, dynamic c]);
+            NetworkTransporter([dynamic a, dynamic b, dynamic c], {dynamic socket, dynamic d, dynamic e});
             void handleIncomingData(dynamic x) {}
             void sendCharacteristicNotification(dynamic a, dynamic b) {}
           }
@@ -195,9 +152,14 @@ jobs:
             final ValueNotifier<bool> isConnected = ValueNotifier(false);
             final ValueNotifier<RetrofitMode> retrofitMode = ValueNotifier(RetrofitMode.proxy);
             final ValueNotifier<bool> isStarted = ValueNotifier(false);
-            final ValueNotifier<dynamic> data = ValueNotifier(null);
+            final ValueNotifier<String> data = ValueNotifier('');
+            final ValueNotifier<bool> waiting = ValueNotifier(false);
+            final ValueNotifier<bool> isUnlocked = ValueNotifier(false);
+            final ValueNotifier<bool> alreadyUnlocked = ValueNotifier(false);
 
-            FitnessBikeDefinition? get activeDefinition => FitnessBikeDefinition();
+            DateTime? connectionDate = DateTime.now();
+
+            ProxyBikeDefinition get activeDefinition => ProxyBikeDefinition();
             String get advertisementName => '';
             dynamic get services => [];
 
@@ -217,8 +179,8 @@ jobs:
           }
 
           class ClickEmulator {
-            ValueNotifier<bool> get isStarted => ValueNotifier(false);
-            ValueNotifier<bool> get isConnected => ValueNotifier(false);
+            final ValueNotifier<bool> isStarted = ValueNotifier(false);
+            final ValueNotifier<bool> isConnected = ValueNotifier(false);
             dynamic startServer(dynamic a, {dynamic name}) => null;
             void stop() {}
             void writeNotification(dynamic x) {}
@@ -325,20 +287,17 @@ jobs:
           echo "export 'package:prop/stub.dart';" > prop/lib/emulators/dircon_emulator.dart
           echo "export 'package:prop/stub.dart';" > prop/lib/prop.dart
 
-      # 4. Setup Flutter SDK
       - name: Set Up Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
           flutter-version: ${{ env.FLUTTER_VERSION }}
 
-      # 5. Build system localizations
       - name: Generate Translation Files
         run: |
           flutter pub global activate intl_utils
           flutter pub global run intl_utils:generate
 
-      # 6. Build dummy keystore values
       - name: Create Dummy Keystore Profile
         run: |
           echo "" > android/android.keystore
@@ -347,11 +306,9 @@ jobs:
           echo "keyAlias=dummyalias" >> android/keystore.properties
           echo "storeFile=android.keystore" >> android/keystore.properties
 
-      # 7. Compile the unlinked release app package
       - name: Build Pure Release APK
         run: flutter build apk --release
 
-      # 8. Deliver package download
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
