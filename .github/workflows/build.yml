@@ -27,15 +27,158 @@ jobs:
               echo "No pubspec_overrides_ci.yaml found, skipping rename."
           fi
 
-      # 3. Trick the system by spawning a fake skeleton package inside the empty folder
-      - name: Stub Out Missing Proprietary Folder
+      # 3. Dynamic Mocking of the complete Proprietary API surface
+      - name: Inject Mock Proprietary Framework stubs
         run: |
-          mkdir -p prop/lib
+          mkdir -p prop/lib/emulators/definitions
+          mkdir -p prop/lib/emulators/transporter
+          mkdir -p prop/lib/services
+          mkdir -p prop/lib/utils
+
           echo "name: prop" > prop/pubspec.yaml
           echo "version: 1.0.0" >> prop/pubspec.yaml
           echo "environment:" >> prop/pubspec.yaml
           echo "  sdk: '>=3.0.0 <4.0.0'" >> prop/pubspec.yaml
-          echo "// Skeleton placeholder" > prop/lib/prop.dart
+
+          cat << 'EOF' > prop/lib/stub.dart
+          import 'package:flutter/foundation.dart';
+
+          enum LogLevel { LOGLEVEL_INFO, LOGLEVEL_WARNING, LOGLEVEL_ERROR, LOGLEVEL_DEBUG }
+          enum TrainerMode { simMode, ergMode, simModeVirtualShifting }
+          enum RetrofitMode { proxy, bluetooth, wifi }
+          enum VirtualShiftingMode { targetPower, trackResistance, basicResistance }
+          enum Di2ButtonState { released, longPress, shortPress }
+
+          enum Opcode {
+            RESET, CONTROLLER_NOTIFICATION, RIDE_ON, STATUS_RESPONSE, GET_RESPONSE, VENDOR_MESSAGE, LOG_DATA, BATTERY_NOTIF;
+            int get value => index;
+            static Opcode valueOf(dynamic x) => RESET;
+          }
+
+          enum DO {
+            PAGE_DEV_INFO, PAGE_DATE_TIME, PAGE_CONTROLLER_INPUT_CONFIG;
+            static DO valueOf(dynamic x) => PAGE_DEV_INFO;
+          }
+
+          class FitnessBikeDefinition {
+            static const HEART_RATE_MEASUREMENT_UUID = '180d';
+            static const CYCLING_POWER_SERVICE_UUID = '1818';
+            static const FITNESS_MACHINE_SERVICE_UUID = '1826';
+            static const FEC_BLE_SERVICE_UUID = 'fec';
+            static dynamic defaultGearRatios = [1.0];
+            static defaultGearRatiosFor(dynamic x) => [1.0];
+            ValueNotifier<TrainerMode> get trainerMode => ValueNotifier(TrainerMode.simMode);
+            int get maxGear => 11;
+            int get powerW => 0;
+            int get cadenceRpm => 0;
+            int get speedKph => 0;
+            int get heartRateBpm => 0;
+            Future<void> probeTrainerFeatures() async {}
+            void setGearRatios(dynamic x) {}
+          }
+
+          class ProxyBikeDefinition extends FitnessBikeDefinition {}
+          class Di2Definition {
+            static standalone({dynamic data}) => Di2Definition();
+          }
+          class BleDefinition {}
+
+          class BridgeUsageTracker {
+            BridgeUsageTracker(dynamic a, dynamic b);
+          }
+
+          class NetworkTransporter {
+            NetworkTransporter(dynamic a, dynamic b, {dynamic c});
+          }
+          class BluetoothTransporter {
+            BluetoothTransporter({dynamic definition, dynamic advertisementName});
+          }
+
+          class DirconEmulator {
+            ValueNotifier<bool> get isConnected => ValueNotifier(false);
+            ValueNotifier<RetrofitMode> get retrofitMode => ValueNotifier(RetrofitMode.proxy);
+          }
+          class ClickEmulator {}
+
+          class PropPrefs {
+            void initialize(dynamic x) {}
+            dynamic getZwiftClickV2LastUnlock(dynamic x) => DateTime.now();
+            bool notSureIfUnlocked(dynamic x) => false;
+            void setNotSureIfUnlocked(dynamic x, dynamic y) {}
+            void setZwiftClickV2LastUnlock(dynamic x, dynamic y) {}
+          }
+          const propPrefs = PropPrefs();
+
+          class SharedLogic {
+            static void keepAlive() {}
+            static void stopKeepAlive() {}
+            static dynamic handleWriteRequest(dynamic x, dynamic y) => null;
+          }
+
+          class Logger {
+            static void debug(dynamic x) {}
+            static void info(dynamic x) {}
+            static void warn(dynamic x) {}
+            static void error(dynamic x) {}
+          }
+
+          class StatusResponse { static fromBuffer(dynamic x) => StatusResponse(); dynamic get command => ''; dynamic get status => ''; }
+          class GetResponse { static fromBuffer(dynamic x) => GetResponse(); dynamic get dataObjectId => 0; dynamic get dataObjectData => null; }
+          class DevInfoPage { static fromBuffer(dynamic x) => DevInfoPage(); }
+          class DateTimePage { static fromBuffer(dynamic x) => DateTimePage(); }
+          class ControllerInputConfigPage { static fromBuffer(dynamic x) => ControllerInputConfigPage(); }
+          class LogDataNotification { static fromBuffer(dynamic x) => LogDataNotification(); }
+          class BatteryNotification { static fromBuffer(dynamic x) => BatteryNotification(); }
+          class BatteryStatus { static fromBuffer(dynamic x) => BatteryStatus(); }
+          class RideKeyPadStatus { static fromBuffer(dynamic x) => RideKeyPadStatus(); int get buttonMap => 0; }
+          class ClickKeyPadStatus { static fromBuffer(dynamic x) => ClickKeyPadStatus(); }
+          class PlayKeyPadStatus { static fromBuffer(dynamic x) => PlayKeyPadStatus(); }
+
+          class PlayButtonStatus {
+            static const ON = PlayButtonStatus();
+            static const OFF = PlayButtonStatus();
+            int get value => 1;
+            @override
+            bool operator ==(Object other) => true;
+            @override
+            int get hashCode => 0;
+          }
+
+          class RideButtonMask { 
+            static const LEFT_BTN = RideButtonMask(); 
+            static const RIGHT_BTN = RideButtonMask(); 
+            static const UP_BTN = RideButtonMask(); 
+            static const DOWN_BTN = RideButtonMask(); 
+            static const A_BTN = RideButtonMask(); 
+            static const B_BTN = RideButtonMask(); 
+            static const Y_BTN = RideButtonMask(); 
+            static const Z_BTN = RideButtonMask(); 
+            static const SHFT_UP_L_BTN = RideButtonMask(); 
+            static const SHFT_DN_L_BTN = RideButtonMask(); 
+            static const SHFT_UP_R_BTN = RideButtonMask(); 
+            static const SHFT_DN_R_BTN = RideButtonMask(); 
+            static const POWERUP_L_BTN = RideButtonMask(); 
+            static const POWERUP_R_BTN = RideButtonMask(); 
+            static const ONOFF_L_BTN = RideButtonMask(); 
+            static const ONOFF_R_BTN = RideButtonMask(); 
+            int get mask => 0;
+            const RideButtonMask();
+          }
+
+          dynamic bytesToHex(dynamic x) => '';
+          dynamic bytesToReadableHex(dynamic x) => '';
+          EOF
+
+          echo "export 'package:prop/stub.dart';" > prop/lib/emulators/definitions/fitness_bike_definition.dart
+          echo "export 'package:prop/stub.dart';" > prop/lib/emulators/definitions/proxy_bike_definition.dart
+          echo "export 'package:prop/stub.dart';" > prop/lib/emulators/definitions/di2_definition.dart
+          echo "export 'package:prop/stub.dart';" > prop/lib/services/bridge_usage_tracker.dart
+          echo "export 'package:prop/stub.dart';" > prop/lib/utils/shared.dart
+          echo "export 'package:prop/stub.dart';" > prop/lib/emulators/transporter/network_transporter.dart
+          echo "export 'package:prop/stub.dart';" > prop/lib/emulators/transporter/bluetooth_transporter.dart
+          echo "export 'package:prop/stub.dart';" > prop/lib/emulators/ble_definition.dart
+          echo "export 'package:prop/stub.dart';" > prop/lib/emulators/dircon_emulator.dart
+          echo "export 'package:prop/stub.dart';" > prop/lib/prop.dart
 
       # 4. Setup Flutter SDK
       - name: Set Up Flutter
@@ -44,7 +187,7 @@ jobs:
           channel: 'stable'
           flutter-version: ${{ env.FLUTTER_VERSION }}
 
-      # 5. Build system components 
+      # 5. Build localization structures
       - name: Generate Translation Files
         run: |
           flutter pub global activate intl_utils
@@ -59,7 +202,7 @@ jobs:
           echo "keyAlias=dummyalias" >> android/keystore.properties
           echo "storeFile=android.keystore" >> android/keystore.properties
 
-      # 7. Compile the completely unlinked APK
+      # 7. Compile target binary 
       - name: Build Pure Release APK
         run: flutter build apk --release
 
