@@ -48,7 +48,7 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v3
         with:
-          submodules: recursive
+          submodules: false
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: rename pubspec_overrides_ci.yaml to pubspec_overrides.yaml
