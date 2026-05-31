@@ -14,11 +14,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Checkout code using the updated stable version
+      # 1. Checkout codebase
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      # 2. Handle app's internal configuration rules
+      # 2. Handle configuration files
       - name: Rename Pubspec Overrides
         run: |
           if [ -f pubspec_overrides_ci.yaml ]; then
@@ -27,20 +27,30 @@ jobs:
               echo "No pubspec_overrides_ci.yaml found, skipping rename."
           fi
 
-      # 3. Setup clean Flutter framework
+      # 3. Trick the system by spawning a fake skeleton package inside the empty folder
+      - name: Stub Out Missing Proprietary Folder
+        run: |
+          mkdir -p prop/lib
+          echo "name: prop" > prop/pubspec.yaml
+          echo "version: 1.0.0" >> prop/pubspec.yaml
+          echo "environment:" >> prop/pubspec.yaml
+          echo "  sdk: '>=3.0.0 <4.0.0'" >> prop/pubspec.yaml
+          echo "// Skeleton placeholder" > prop/lib/prop.dart
+
+      # 4. Setup Flutter SDK
       - name: Set Up Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
           flutter-version: ${{ env.FLUTTER_VERSION }}
 
-      # 4. Generate system translation files (the compilation crashes without this)
+      # 5. Build system components 
       - name: Generate Translation Files
         run: |
           flutter pub global activate intl_utils
           flutter pub global run intl_utils:generate
 
-      # 5. Prevent Gradle from throwing a fit over missing signing configurations
+      # 6. Bypass key registration profiles
       - name: Create Dummy Keystore Profile
         run: |
           echo "" > android/android.keystore
@@ -49,11 +59,11 @@ jobs:
           echo "keyAlias=dummyalias" >> android/keystore.properties
           echo "storeFile=android.keystore" >> android/keystore.properties
 
-      # 6. Compile the raw, un-monetized application binary
+      # 7. Compile the completely unlinked APK
       - name: Build Pure Release APK
         run: flutter build apk --release
 
-      # 7. Throw the finished installer straight onto your Summary page for instant download
+      # 8. Export directly to your browser for immediate use
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
